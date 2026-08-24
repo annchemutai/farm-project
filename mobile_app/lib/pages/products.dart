@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/widgets/search_bar.dart';
 import 'package:provider/provider.dart';
 
 //services
@@ -9,6 +8,8 @@ import '../services/products_service.dart';
 import '../widgets/product_card.dart';
 import '../widgets/app_bar.dart';
 import '../widgets/categories_widget.dart';
+import '../widgets/search_bar.dart';
+
 
 class ProductsPage extends StatefulWidget{
   const ProductsPage({super.key});
@@ -35,7 +36,7 @@ class _ProductsState extends State<ProductsPage> {
   @override
   Widget build(BuildContext context) {
         return Scaffold(
-          appBar: AppBarWidget(title: 'Shamba Online'),
+          appBar: AppBarWidget(title: 'Products'),
 
           body: Consumer<ProductService>(
             builder: (context, productService, child) {
