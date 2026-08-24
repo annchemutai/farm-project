@@ -137,7 +137,7 @@ class ProfilePage extends StatelessWidget {
     dynamic user,
   ) {
     final fullName =
-        '${user.firstname} ${user.lastname}';
+        '${user.firstName} ${user.lastName}';
 
     return Scaffold(
       appBar: AppBar(
@@ -296,7 +296,7 @@ class ProfilePage extends StatelessWidget {
                     context,
                     icon: Icons.home_outlined,
                     title: 'Delivery Address',
-                    value: user.deliveryAddress,
+                    value: user.address,
                   ),
                 ],
               ),

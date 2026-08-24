@@ -25,7 +25,7 @@ class _MainScreenState extends State<MainScreen>{
 
   @override
   Widget build(BuildContext context){
-//   final cartService = context.watch<CartService>();
+  final cartService = context.watch<CartService>();
     
     return Scaffold(
       body: pages[currentIndex],
@@ -52,13 +52,13 @@ class _MainScreenState extends State<MainScreen>{
           ),
           NavigationDestination(
             icon: Badge(
-            isLabelVisible: false,
-            label: Text('Cart'),
+            isLabelVisible: cartService.itemCount > 0,
+            label: Text(cartService.itemCount.toString()),
             child: Icon(Icons.shopping_cart_outlined),
           ),
           selectedIcon: Badge(
-            isLabelVisible: false,
-            label: Text('Cart'),
+            isLabelVisible: cartService.itemCount > 0,
+            label: Text(cartService.itemCount.toString()),
             child: Icon(Icons.shopping_cart),
           ),
             label: "Cart",
