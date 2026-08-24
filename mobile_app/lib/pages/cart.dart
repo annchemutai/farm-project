@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 
 import '../services/cart_service.dart';
 import '../services/auth_service.dart';
+import '../services/order_service.dart';
 
 import 'login.dart';
 import 'orders.dart';
+
 
 class CartPage extends StatefulWidget{
   const CartPage({super.key});
@@ -16,6 +18,39 @@ class CartPage extends StatefulWidget{
 }
 
 class _CartPageState extends State<CartPage> {
+
+  Future<void> addOrder(List<CartItem>cart, user) async{
+
+    final token = context.read<AuthService>().token;
+
+    final data ={
+      'products': cart.map((item) {
+        return {
+          'product_id': item.product.id,
+          'quantity': item.quantity,
+        };
+      }).toList(), 
+      'user_id': user.id 
+    };
+
+    final success = await context.read<OrdersService>().addOrder(data, token);
+    if (success) {
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text( "Order created successfully!", ),
+          ),
+        );
+        context.read<CartService>().clearCart();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const OrdersPage(),
+          ),
+        );
+
+  }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -452,6 +487,13 @@ class _CartPageState extends State<CartPage> {
                             );
                           }else{
                             //TO DO: function to add order
+                            final auth = Provider.of<AuthService>(
+                              context,
+                              listen: false,
+                            );
+
+                            final currentUser = auth.currentUser;
+                            addOrder( cart.cart, currentUser );
                        
                           }
                         }, //add function to checkout
