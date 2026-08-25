@@ -22,31 +22,31 @@ class _SearchBoxState extends State<SearchBox> {
     }
     @override
     void initState() {
-        super.initState();
-        Future.microtask(() {
-        
-        });
+      super.initState();
+      Future.microtask(() {
+      
+      });
     }
   
   @override
   Widget build(BuildContext context) {
-        return TextField(
-            controller: searchController,
-            onChanged:(value) {
-                widget.onChanged(value);
+    return TextField(
+        controller: searchController,
+        onChanged:(value) {
+            widget.onChanged(value);
+        },
+        decoration: InputDecoration(
+            hintText: 'Search for produce...',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: IconButton(
+            onPressed: () {
+                searchController.clear();
+                widget.onChanged('');
+                setState(() {});
             },
-            decoration: InputDecoration(
-                hintText: 'Search for produce...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: IconButton(
-                onPressed: () {
-                    searchController.clear();
-                    widget.onChanged('');
-                    setState(() {});
-                },
-                icon: const Icon(Icons.tune),
-                ),
+            icon: const Icon(Icons.tune),
             ),
-        ); 
+        ),
+    ); 
   }
 }
