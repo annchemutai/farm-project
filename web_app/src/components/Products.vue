@@ -38,7 +38,6 @@ function addToCart(product){
 function checkout(){
     if (isAuthenticated) {
         ordersStore.checkout(cart)
-        console.log('here')
     }
     else{
         router.push('/login')

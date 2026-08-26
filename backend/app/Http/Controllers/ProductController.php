@@ -21,13 +21,17 @@ class ProductController extends Controller
     //add product
     public function store(Request $request)
     {
+        $path = "";
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('products', 'public'); 
+        }
         try{
             $product = new Product();
             $product->name = $request->name;
             $product->category_id = $request->category_id;
             $product->price = $request->price;
-            $product->image = $request->image;
-            $product->availability = $request->availability;
+            $product->image = $path;
+            $product->availability = 1;
             $product->description = $request->description;
             $product->save();
             return response()->json([
@@ -45,12 +49,16 @@ class ProductController extends Controller
     // update product
     public function update(Request $request, $id)
     {
+        $path = "";
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('products', 'public'); 
+        }
         try{
             $product = Product::where('id', $id)->first();
             $product->name = $request->name;
             $product->category_id = $request->category_id;
             $product->price = $request->price;
-            $product->image = $request->image;
+            $product->image = $path;
             $product->availability = $request->availability;
             $product->description = $request->description;
             $product->save();

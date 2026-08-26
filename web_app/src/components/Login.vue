@@ -17,13 +17,14 @@ const email = ref(null)
 const password = ref(null) //model
 const showPassword = ref(false)
 
-function login()
+async function login()
 {
     const data = {
         email: email.value,
         password: password.value,
     }
-    checkCredentials(data)
+   await checkCredentials(data)
+    
     router.push('/').then(() => {
         router.go(0)
     });

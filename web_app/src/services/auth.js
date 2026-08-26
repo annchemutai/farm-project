@@ -24,7 +24,7 @@ export function useAuth() {
             if (token && userData) {
                 user.value = userData
 
-                if (user.value.role == 1) isAdmin.value = true
+                if (user.value.role_id == 1) isAdmin.value = true
                 isAuthenticated.value = true
 
                 localStorage.setItem("authToken", token);
@@ -75,8 +75,9 @@ export function useAuth() {
     // Logout
     function logout() {
         localStorage.removeItem("isAuthenticated");
-        // localStorage.removeItem("user");
+        localStorage.removeItem("user");
         localStorage.removeItem("isAdmin");
+        localStorage.removeItem("authToken");
     }
     return {
         checkCredentials,

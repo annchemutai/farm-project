@@ -12,7 +12,7 @@ let role = 0
 let letter = ''
 if(user){
     letter = user.firstname[0]
-    role = user.role
+    role = user.role_id
 }
 
 function logOut(){
