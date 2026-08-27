@@ -1,34 +1,37 @@
 <script setup>
-import {ref, computed} from 'vue'
+import {ref, computed, onMounted} from 'vue'
+import { storeToRefs } from 'pinia'
 import { useProductsStore } from '../stores/products'
-import { useUsersStore } from '../stores/users'
 import { useOrdersStore } from '../stores/orders'
 
 const productsStore = useProductsStore()
-const usersStore = useUsersStore()
+// const usersStore = useUsersStore()
 const ordersStore = useOrdersStore()
 
-const products= productsStore.products
-const users = usersStore.users
-const orders = ordersStore.orders
-
-const allOrders = Object.values(orders).map(order => { 
-    const product = Object.values(products).find(product => product.id === order.product_id);
-    const user = Object.values(users).find(user => user.id === order.customer_id);
-    return {
-        ...order,
-        customer: user ? user.firstname + ' '+  user.lastname: 'Unknown User',
-        productName: product ? product.name : 'Unknown Product',
-        price: product ? product.price : '0'
-        
-    };
-});
+const { products, categories } = storeToRefs(productsStore)
+const { orders } = storeToRefs(ordersStore)
+const token = localStorage.getItem( "authToken")
 
 const tab = ref(null)
 const refreshKey = ref(0)
 const showAddProductDialog = ref(false)
 const showEditProductDialog = ref(false)
 const viewOrderDialog = ref(false)
+
+//image
+const selectedFile = ref(null);
+const previewUrl = ref(null);
+
+// Capture selected file and create local preview
+const handleFileChange = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  selectedFile.value = file;
+  
+  // Creates a temporary local browser preview string URL
+  previewUrl.value = URL.createObjectURL(file);
+};
 
 //products
 // product models
@@ -38,19 +41,20 @@ const price = ref(null)
 const availability = ref(null)
 const category = ref(null)
 const image = ref(null)
+const description = ref(null)
 
 //add new product
-function handleAddProduct(){
-    const data = {
-        productId: productId.value,
-        name: productName.value,
-        price: price.value,
-        availability: true,
-        category: category.value,
-        image: image.value,
-    }
+async function handleAddProduct(){
+
+    const formData = new FormData();
+    formData.append('image', image.value)
+    formData.append('name', productName.value)
+    formData.append('price', price.value)
+    formData.append('category_id', category.value)
+    formData.append('description', description.value)
+    
     //update products in the store
-     productsStore.addProduct(data)
+    await productsStore.addProduct(formData, token)
      close()
 }
 
@@ -60,33 +64,36 @@ function editProduct(product){
     productName.value = product.name
     price.value = product.price
     availability.value = product.availability
-    category.value = product.category
+    category.value = product.category_id
     image.value = product.image
+    previewUrl.value = product.image
+    description.value = product.description
     showEditProductDialog.value = true
 }
-function handleUpdateProduct(){
-    const data = {
-        productId: productId.value,
-        name: productName.value,
-        price: price.value,
-        availability: availability.value,
-        category: category.value,
-        image: image.value,
-    }
+async function handleUpdateProduct(){
+    const formData = new FormData();
+    formData.append('image', image.value)
+    formData.append('name', productName.value)
+    formData.append('price', price.value)
+    formData.append('category_id', category.value)
+    formData.append('description', description.value)
+    formData.append('availability', availability.value)
 
-    //to do update product
-    productsStore.updateProduct(productId.value, data)
+    //update product
+    await productsStore.updateProduct(productId.value, formData, token)
     close()
     refreshKey.value += 1    
 
 }
 //delete
-function handleDeleteProduct(id){
-    productsStore.deleteProduct(id);
+async function handleDeleteProduct(id){
+    await productsStore.deleteProduct(id, token);
     refreshKey.value += 1
 }
-
 //orders
+//1. view order details - user details, product details, total
+//2. complete order
+
 const orderCustomerName = ref(null)
 const orderCustomerAddress = ref(null)
 const orderProductName = ref(null)
@@ -98,22 +105,22 @@ const subtotal =ref(null)
 const totalAmount =ref(null)
 
 function viewOrder(item){
-    orderCustomerName.value = item.customer
-    orderCustomerAddress.value = item.customerName
-    orderProductName.value = item.productName
-    orderPrice.value = item.price
+    orderCustomerName.value = item.user.firstname + ' '+ item.user.lastname
+    orderCustomerAddress.value = item.address
+    orderProductName.value = item.product.name
+    orderPrice.value = item.product.price
     orderQuantity.value = item.quantity
-    orderTotalPaid.value = item.total_paid
-    orderStatus.value = item.status
+    orderTotalPaid.value = item.product.price *item.quantity
+    orderStatus.value = item.order_status
 
-    subtotal.value = computed(() => item.price * item.quantity)
+    subtotal.value = computed(() => item.product.price * item.quantity)
     totalAmount.value = computed(() => subtotal.value)
     viewOrderDialog.value = true
 
 }
 
-function handleCompleteOrder(id){
-    ordersStore.completeOrder(id)
+async function handleCompleteOrder(id){
+    await ordersStore.completeOrder(id, token)
     refreshKey.value += 1    
     close()
 }
@@ -139,7 +146,11 @@ function close(){
     orderStatus.value = null
     viewOrderDialog.value = false
 }
-
+onMounted(async () => {
+  await productsStore.fetchProducts() 
+  await productsStore.fetchCategories() 
+  await ordersStore.fetchAllOrders(token) 
+})
 </script>
 
 <template>
@@ -186,8 +197,8 @@ function close(){
                                     <tr v-for="item in products" :key="item.id" >
                                         <td>{{ item.name }}</td>
                                         <td>{{ item.price }}</td>
-                                        <td>{{ item.category }}</td>
-                                        <td>{{ item.availability }}</td>
+                                        <td>{{ item.category.name }}</td>
+                                        <td>{{ item.availability == 1 ? "Available" : "Out of Stock" }}</td>
                                         <td> <v-btn color="warning" size="small"><v-icon icon="mdi-eye" ></v-icon> View</v-btn> </td>
                                         <td> <v-btn color="blue" size="small" @click="editProduct(item)"><v-icon icon="mdi-pencil" ></v-icon> Edit</v-btn> </td>
                                         <td> <v-btn color="error" size="small" @click="handleDeleteProduct(item.id)"><v-icon icon="mdi-delete"></v-icon> Delete</v-btn> </td>
@@ -199,7 +210,7 @@ function close(){
                         </v-container>
                     </div>
                 </v-tabs-window-item>
-             
+
                 <!-- Orders -->
                 <v-tabs-window-item :value="2">
                     <div v-if="orders == null||orders==undefined||Object.keys(orders).length == 0" align="center">
@@ -207,12 +218,18 @@ function close(){
                             <v-col cols="12" md="6" sm="12" >
                                 <div class="text-h6">No orders found</div>
                             </v-col>
-                            
+                            <v-col cols="12" md="6" sm="12" >
+                                <v-btn class="ma-2" color="blue-darken-2" icon="mdi-plus" @click="showAddUserDialog = true"></v-btn>
+                            </v-col>
                         </v-row>
                     </div>
                     <div v-else>
                         <v-container>
-                            
+                            <v-row>
+                                <v-col cols="12" md="12" sm="12" align="right">
+                                    <v-btn class="ma-2" color="blue-darken-2" icon="mdi-plus" @click="showAddUserDialog = true"></v-btn>
+                                </v-col>
+                            </v-row>
                         <v-row>
                         <v-col>
                             <v-table class="border">
@@ -228,15 +245,15 @@ function close(){
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="item in allOrders" :key="item.id" >
-                                        <td>{{ item.customer }}</td>
-                                        <td>{{ item.productName }}</td>
-                                        <td>{{ item.price }}</td>
+                                    <tr v-for="item in orders" :key="item.id" >
+                                        <td>{{ item.user.firstname + ' ' + item.user.lastname }}</td>
+                                        <td>{{ item.product.name }}</td>
+                                        <td>{{ item.product.price }}</td>
                                         <td>{{ item.quantity }}</td>
-                                        <td>{{ item.total_paid }}</td>
-                                        <td>{{ item.status }}</td>
+                                        <td>{{ item.quantity * item.product.price }}</td>
+                                        <td>{{ item.order_status == 1 ? "Processing": "Fulfilled" }}</td>
                                         <td> <v-btn color="warning" size="small" @click="viewOrder(item)"><v-icon icon="mdi-eye"></v-icon> View</v-btn> </td>
-                                        <td v-if="item.status != 'fulfilled'"> <v-btn color="blue" size="small" @click="handleCompleteOrder(item.id)"><v-icon icon="mdi-progress-check" ></v-icon> Complete Order</v-btn> </td>
+                                        <td v-if="item.order_status == 1"> <v-btn color="blue" size="small" @click="handleCompleteOrder(item.id)"><v-icon icon="mdi-progress-check" ></v-icon> Complete Order</v-btn> </td>
                                         <td v-else> <v-btn color="blue" size="small" disabled><v-icon icon="mdi-check-circle" ></v-icon> Completed</v-btn> </td>
                                         <td> <v-btn color="error" size="small"><v-icon icon="mdi-delete" ></v-icon> Delete</v-btn> </td>
                                     </tr>
@@ -265,20 +282,33 @@ function close(){
                 </v-card-title>
                 <v-card-text>
                     <v-row>
+                        <v-col md="12">
+                            <v-card v-if="previewUrl" class="mt-4 mx-auto" max-width="400">
+                                <v-img :src="previewUrl" height="250" cover ></v-img>
+                                <v-card-subtitle class="text-center py-2"> Image Preview </v-card-subtitle>
+                            </v-card>
+                        </v-col>
+                    </v-row>
+                    <v-row>
                         <v-col md="6">
                             <v-text-field label="Product Name" v-model="productName" required></v-text-field>
                         </v-col>
                         <v-col md="6">
-                            <v-select :items="['Fruit', 'Vegetable', 'Cereals']" v-model ="category">
+                            <v-select label="Select Category" :items="categories" item-title = "name", item-value="id" v-model ="category">
                             </v-select>
                         </v-col>
                     </v-row>
                     <v-row>
                         <v-col md="6">
-                            <v-text-field label="Image" v-model="image" required></v-text-field>
+                            <v-file-input label="Select Image" accept="image/*" prepend-icon="mdi-camera" variant="outlined" v-model="image" @change="handleFileChange"></v-file-input>
                         </v-col>
                         <v-col md="6">
                             <v-text-field label="Price" v-model="price" required></v-text-field>
+                        </v-col>
+                    </v-row>
+                    <v-row>
+                        <v-col md="12">
+                            <v-textarea label="Description" v-model="description" required></v-textarea>
                         </v-col>
                     </v-row>
                 </v-card-text>
@@ -304,17 +334,25 @@ function close(){
                 </v-card-title>
                 <v-card-text>
                     <v-row>
-                        <v-col md="6">
-                            <v-text-field label="Product Name" v-model="productName" required></v-text-field>
-                        </v-col>
-                        <v-col md="6">
-                            <v-select :items="['Fruit', 'Vegetable', 'Cereals']" v-model ="category">
-                            </v-select>
+                        <v-col md="12">
+                            <v-card v-if="previewUrl" class="mt-4 mx-auto" max-width="400">
+                                <v-img :src="previewUrl" height="250" cover ></v-img>
+                                <v-card-subtitle class="text-center py-2"> Image Preview </v-card-subtitle>
+                            </v-card>
                         </v-col>
                     </v-row>
                     <v-row>
                         <v-col md="6">
-                            <v-text-field label="Image" v-model="image" required></v-text-field>
+                            <v-text-field label="Product Name" v-model="productName" required></v-text-field>
+                        </v-col>
+                        <v-col md="6">
+                            
+                            <v-select label="Select Category" :items="categories" item-title = "name", item-value="id" v-model ="category"></v-select>
+                        </v-col>
+                    </v-row>
+                    <v-row>
+                        <v-col md="6">
+                            <v-file-input label="Select Image" accept="image/*" prepend-icon="mdi-camera" variant="outlined" v-model="image" @change="handleFileChange"></v-file-input>
                         </v-col>
                         <v-col md="6">
                             <v-text-field label="Price" v-model="price" required></v-text-field>
@@ -323,8 +361,8 @@ function close(){
                     <v-row>
                         <v-col md="6">
                             <v-radio-group v-model="availability" inline>
-                                <v-radio label="In Stock" value="true"></v-radio>
-                                <v-radio label="Out Of Stock" value="false"></v-radio>
+                                <v-radio label="In Stock" value="1"></v-radio>
+                                <v-radio label="Out Of Stock" value="0"></v-radio>
                             </v-radio-group>
                         </v-col>
                     </v-row>
@@ -355,7 +393,7 @@ function close(){
                 size="small"
                 class="text-uppercase font-weight-bold"
                 >
-                {{ orderStatus=='fulfilled'  ? 'Complete' : 'Pending' }}
+                {{ orderStatus== 0  ? 'Complete' : 'Pending' }}
                 </v-chip>
             </div>
             </v-card-item>
@@ -415,3 +453,21 @@ function close(){
         </v-card>
     </v-dialog>
 </template>
+
+<style scoped>
+.image-upload-container {
+  max-width: 400px;
+  margin: 20px auto;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+.preview-box {
+  margin: 15px 0;
+}
+button {
+  margin-top: 10px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
+</style>

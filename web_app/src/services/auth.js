@@ -51,14 +51,14 @@ export function useAuth() {
         loading.value = true
         error.value = null
 
-        console.log(formData)
+        // console.log(formData)
         try {
-             const response = await api.post('register', formData)
+             const response = await api.post('register', data)
              const { token, user: userData } = response.data
             if (token && userData) {
                 user.value = userData
                 localStorage.setItem("authToken", token);
-                localStorage.setItem("user", JSON.stringify(user));
+                localStorage.setItem("user", JSON.stringify(user.value));
 
                 return response
             } else {

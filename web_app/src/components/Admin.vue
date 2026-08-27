@@ -10,21 +10,9 @@ const usersStore = useUsersStore()
 const ordersStore = useOrdersStore()
 
 const { products, categories } = storeToRefs(productsStore)
+const { orders } = storeToRefs(ordersStore)
 const users = usersStore.users
-const orders = ordersStore.orders
 const token = localStorage.getItem( "authToken")
-
-const allOrders = Object.values(orders).map(order => { 
-    // const product = Object.values(products.value).find(product => product.id === order.product_id);
-    const user = Object.values(users).find(user => user.id === order.customer_id);
-    return {
-        ...order,
-        customer: user ? user.firstname + ' '+  user.lastname: 'Unknown User',
-        // productName: product ? product.name : 'Unknown Product',
-        // price: product ? product.price : '0'
-        
-    };
-});
 
 const tab = ref(null)
 const refreshKey = ref(0)
@@ -200,8 +188,8 @@ function viewOrder(item){
 
 }
 
-function handleCompleteOrder(id){
-    ordersStore.completeOrder(id)
+async function handleCompleteOrder(id){
+    await ordersStore.completeOrder(id, token)
     refreshKey.value += 1    
     close()
 }
@@ -241,6 +229,7 @@ function close(){
 onMounted(async () => {
   await productsStore.fetchProducts() 
   await productsStore.fetchCategories() 
+  await ordersStore.fetchAllOrders(token) 
 })
 </script>
 
@@ -290,7 +279,7 @@ onMounted(async () => {
                                         <td>{{ item.name }}</td>
                                         <td>{{ item.price }}</td>
                                         <td>{{ item.category.name }}</td>
-                                        <td>{{ item.availability }}</td>
+                                        <td>{{ item.availability == 1 ? "Available" : "Out of Stock" }}</td>
                                         <td> <v-btn color="warning" size="small"><v-icon icon="mdi-eye" ></v-icon> View</v-btn> </td>
                                         <td> <v-btn color="blue" size="small" @click="editProduct(item)"><v-icon icon="mdi-pencil" ></v-icon> Edit</v-btn> </td>
                                         <td> <v-btn color="error" size="small" @click="handleDeleteProduct(item.id)"><v-icon icon="mdi-delete"></v-icon> Delete</v-btn> </td>
@@ -390,15 +379,15 @@ onMounted(async () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="item in allOrders" :key="item.id" >
-                                        <td>{{ item.customer }}</td>
-                                        <td>{{ item.productName }}</td>
-                                        <td>{{ item.price }}</td>
+                                    <tr v-for="item in orders" :key="item.id" >
+                                        <td>{{ item.user.firstname + ' ' + item.user.lastname }}</td>
+                                        <td>{{ item.product.name }}</td>
+                                        <td>{{ item.product.price }}</td>
                                         <td>{{ item.quantity }}</td>
-                                        <td>{{ item.total_paid }}</td>
-                                        <td>{{ item.status }}</td>
+                                        <td>{{ item.quantity * item.product.price }}</td>
+                                        <td>{{ item.order_status == 1 ? "Processing": "Fulfilled" }}</td>
                                         <td> <v-btn color="warning" size="small" @click="viewOrder(item)"><v-icon icon="mdi-eye"></v-icon> View</v-btn> </td>
-                                        <td v-if="item.status != 'fulfilled'"> <v-btn color="blue" size="small" @click="handleCompleteOrder(item.id)"><v-icon icon="mdi-progress-check" ></v-icon> Complete Order</v-btn> </td>
+                                        <td v-if="item.order_status == 1"> <v-btn color="blue" size="small" @click="handleCompleteOrder(item.id)"><v-icon icon="mdi-progress-check" ></v-icon> Complete Order</v-btn> </td>
                                         <td v-else> <v-btn color="blue" size="small" disabled><v-icon icon="mdi-check-circle" ></v-icon> Completed</v-btn> </td>
                                         <td> <v-btn color="error" size="small"><v-icon icon="mdi-delete" ></v-icon> Delete</v-btn> </td>
                                     </tr>

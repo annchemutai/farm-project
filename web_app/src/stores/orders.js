@@ -1,61 +1,35 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import api  from '../services/api';
 
 export const useOrdersStore = defineStore('orders',  {
    state: () => {
-        const orders= {
-            0:{
-                id: 1,
-                customer_id: 2,
-                product_id: 4,
-                quantity: 1,
-                total_paid: 1800,
-                status: "processing"
-            },
-            1:{
-                id: 2,
-                customer_id: 3,
-                product_id: 2,
-                quantity: 2,
-                total_paid: 4000,
-                status: "fulfilled"
-            },
-            2:{
-                id: 3,
-                customer_id: 1,
-                product_id: 4,
-                quantity: 1,
-                total_paid: 1800,
-                status: "fulfilled"
-            },
-            3:{
-                id: 4,
-                customer_id: 5,
-                product_id: 3,
-                quantity: 1,
-                total_paid: 1800,
-                status: "fulfilled"
-            },
-            4:{
-                id: 5,
-                customer_id: 3,
-                product_id: 2,
-                quantity: 1,
-                total_paid: 1800,
-                status: "processing"
-            },
-            5:{
-                id: 6,
-                customer_id: 1,
-                product_id: 2,
-                quantity: 1,
-                total_paid: 2000,
-                status: "fulfilled"
+        const orders= ref([])
+
+        async function fetchAllOrders(token) {
+          const response = await api.get('fetchAllOrders',
+            { 
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                } 
             }
+          )
+            orders.value = response.data
         }
-       
+
+        async function completeOrder(id, token) {
+            const response = await api.post('completeOrder/'+id, null,
+            { 
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                } 
+            }
+          )
+            // orders.value = response.data
+        }
+
         return{
-            orders
+            orders, fetchAllOrders, completeOrder
         }
    },
    actions:{
@@ -86,25 +60,7 @@ export const useOrdersStore = defineStore('orders',  {
             })
             
         },
-       completeOrder(id) {
-            // find the order in the object
-            const order = Object.entries(this.orders).find(
-                ([key, item]) => item.id === id //compare the ids
-            );
-
-            if (!order) {
-                console.error(`No order found with id: ${id}`);
-                return;
-            }
-
-            const [objectKey] = order;
-
-            //replace the existing order data with what was received in payload
-            this.orders[objectKey] = {
-                ...this.orders[objectKey], 
-                status: 'fulfilled'
-            };
-        },
+   
    },
    persist: true,
 })

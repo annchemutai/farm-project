@@ -25,7 +25,7 @@ const phone = ref(null)
 const location = ref(null)
 const address = ref(null)
 
-function register()
+async function register()
 {
     const data = {
         firstname: firstname.value,
@@ -39,7 +39,7 @@ function register()
 
         // role 1 is for admin, role 2 is for customer
     }
-    signup(data)
+    await signup(data)
     router.push('/').then(() => {
         router.go(0)
     });

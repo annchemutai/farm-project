@@ -34,5 +34,15 @@ class UserSeeder extends Seeder
             'password'=>'Qwerty1.',
             'role_id'=>2,
         ]);
+        User::create([
+           'firstname'=>'Test',
+            'lastname'=>'Seller',
+            'email'=>'test_seller@example.com',
+            'phone'=>'0711222333',
+            'location'=>'Nairobi',
+            'address'=>'123 Example Street',
+            'password'=>'Qwerty1.',
+            'role_id'=>3,
+        ]);
     }
 }
